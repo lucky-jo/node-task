@@ -17,18 +17,11 @@ export const createApp = (_: AppDeps): AppRTE<Error, express.Application> => {
     app.use(cors());
     app.use(express.json());
 
-    // 공개 엔드포인트 설정
-    app.get("/health", (_, res) => {
-      res.json({ status: "ok" });
-    });
+    // 전역 인증 미들웨어 적용 (공개 경로는 미들웨어 내부에서 제외)
+    app.use(createAuthMiddleware(deps.authPort));
 
-    // 인증 라우터 등록 (공개 엔드포인트 포함)
+    // 라우터 등록
     app.use("/api/auth", createAuthRouter(deps.authPort));
-
-    // 인증이 필요한 라우트에만 인증 미들웨어 적용
-    app.use("/api/auth/admin", createAuthMiddleware(deps.authPort));
-    app.use("/api/auth/user", createAuthMiddleware(deps.authPort));
-    app.use("/api/auth/shared", createAuthMiddleware(deps.authPort));
 
     return TE.right(app);
   };

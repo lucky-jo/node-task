@@ -3,12 +3,21 @@ import { AuthPort } from "./types";
 import { RequestHandler } from "express";
 import { AppDeps } from "../../core/types";
 
+// 인증이 필요없는 경로 목록
+const PUBLIC_PATHS = ["/health", "/api/auth/register", "/api/auth/login"];
+
 export const createAuthMiddleware = (authPort: AuthPort): RequestHandler => {
   return async (
     req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> => {
+    // 공개 경로는 인증 검사 건너뛰기
+    if (PUBLIC_PATHS.includes(req.path)) {
+      next();
+      return;
+    }
+
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {
