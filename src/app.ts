@@ -29,9 +29,7 @@ export const createApp = (_: AppDeps): AppRTE<Error, express.Application> => {
 
 // 앱 실행
 const main = async () => {
-  const client = new MongoClient(
-    "mongodb://mongo:fFLXCOomMjMrcpLrknmzfNVuicOaAUJj@gondola.proxy.rlwy.net:28749"
-  );
+  const client = new MongoClient(process.env.JWT_SECRET);
   await client.connect();
 
   const deps: AppDeps = {
