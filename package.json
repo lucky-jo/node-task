@@ -16,7 +16,8 @@
     "type-check": "tsc --project tsconfig.json --pretty --noEmit",
     "prepare": "husky install",
     "build": "tsc",
-    "ci": "yarn lint && yarn type-check && yarn test"
+    "ci": "yarn lint && yarn type-check && yarn test",
+    "deploy": "yarn build && yarn start"
   },
   "dependencies": {
     "@types/cors": "^2.8.18",
