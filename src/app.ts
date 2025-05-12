@@ -8,6 +8,10 @@ import * as E from "fp-ts/Either";
 import { createAuthRouter } from "./ports/auth/router";
 import { AppDeps, AppRTE } from "./core/types";
 import { MongoClient } from "mongodb";
+import dotenv from "dotenv";
+
+// 환경변수 로드 (가장 먼저 실행)
+dotenv.config();
 
 export const createApp = (_: AppDeps): AppRTE<Error, express.Application> => {
   return (deps: AppDeps) => {
@@ -29,7 +33,7 @@ export const createApp = (_: AppDeps): AppRTE<Error, express.Application> => {
 
 // 앱 실행
 const main = async () => {
-  const client = new MongoClient(process.env.JWT_SECRET);
+  const client = new MongoClient(process.env["MONGODB_URI"] as string);
   await client.connect();
 
   const deps: AppDeps = {
