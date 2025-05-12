@@ -1,6 +1,7 @@
-import { Request, Response } from 'express'
-import { AuthPort } from './types'
-import { User } from '../../core/domain/user'
+import { Request, Response } from "express";
+import { AuthPort } from "./types";
+import { User } from "../../core/domain/user";
+import { AppDeps } from "../../core/types";
 
 interface RegisterRequest {
   email: string;
@@ -14,84 +15,97 @@ interface LoginRequest {
 }
 
 export class AuthController {
-  constructor (private readonly authPort: AuthPort) {}
+  constructor(private readonly authPort: AuthPort) {}
 
   register = async (req: Request<{}, {}, RegisterRequest>, res: Response) => {
-    const { email, username } = req.body
+    const { email, username } = req.body;
 
     // TODO: 비밀번호 해싱 및 사용자 생성 로직 구현
     const user: User = {
-      id: 'temp-id', // TODO: 실제 ID 생성 로직 구현
+      id: "temp-id", // TODO: 실제 ID 생성 로직 구현
       email,
       username,
       createdAt: new Date(),
       updatedAt: new Date(),
-    }
+    };
 
     try {
       const token = await this.authPort.generateToken({
         ...user,
-        roles: ['user'], // 기본 역할
-      })
+        roles: ["user"], // 기본 역할
+      });
 
       res.status(201).json({
         user: {
           ...user,
-          roles: ['user'],
+          roles: ["user"],
         },
         token,
-      })
+      });
     } catch (error) {
       res.status(500).json({
-        code: 'REGISTRATION_FAILED',
-        message: 'Failed to register user',
-      })
+        code: "REGISTRATION_FAILED",
+        message: "Failed to register user",
+      });
     }
   };
 
   login = async (req: Request<{}, {}, LoginRequest>, res: Response) => {
-    const { email } = req.body
+    const { email } = req.body;
 
     // TODO: 사용자 인증 및 비밀번호 검증 로직 구현
     const user: User = {
-      id: 'temp-id', // TODO: 실제 사용자 조회 로직 구현
+      id: "temp-id", // TODO: 실제 사용자 조회 로직 구현
       email,
-      username: 'temp-username',
+      username: "temp-username",
       createdAt: new Date(),
       updatedAt: new Date(),
-    }
+    };
 
     try {
-      const token = await this.authPort.generateToken({
+      const deps: AppDeps = {
+        db: req.app.locals["db"],
+        authPort: this.authPort,
+      };
+
+      const result = await this.authPort.generateToken({
         ...user,
-        roles: ['user'],
-      })
+        roles: ["user"],
+      })(deps)();
+
+      if ("left" in result) {
+        res.status(401).json({
+          code: "LOGIN_FAILED",
+          message: result.left.message,
+        });
+        return;
+      }
 
       res.json({
         user: {
           ...user,
-          roles: ['user'],
+          roles: ["user"],
         },
-        token,
-      })
+        token: result.right,
+      });
     } catch (error) {
       res.status(401).json({
-        code: 'LOGIN_FAILED',
-        message: 'Invalid credentials',
-      })
+        code: "LOGIN_FAILED",
+        message: "Invalid credentials",
+      });
     }
   };
 
   getCurrentUser = async (req: Request, res: Response) => {
-    const user = req.user
+    const user = req.user;
 
     if (!user) {
       return res.status(401).json({
-        code: 'UNAUTHORIZED',
-        message: 'Not authenticated',
-      })
+        code: "UNAUTHORIZED",
+        message: "Not authenticated",
+      });
     }
 
-    return res.json({ user })
+    return res.json({ user });
   };
 }

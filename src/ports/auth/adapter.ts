@@ -84,25 +84,57 @@ export class AuthAdapter implements AuthPort {
 
   requireRole = (roles: string[]) => {
     return async (req: any, res: any, next: any) => {
-      const user = req.user as AuthenticatedUser;
+      const authHeader = req.headers.authorization;
 
-      if (!user) {
+      if (!authHeader) {
         return res.status(401).json({
           code: "UNAUTHORIZED",
-          message: "Authentication required",
+          message: "No authorization header",
         });
       }
 
-      const hasRequiredRole = roles.some((role) => user.roles.includes(role));
+      const [bearer, token] = authHeader.split(" ");
 
-      if (!hasRequiredRole) {
-        return res.status(403).json({
-          code: "FORBIDDEN",
-          message: "Insufficient permissions",
+      if (bearer !== "Bearer" || !token) {
+        return res.status(401).json({
+          code: "UNAUTHORIZED",
+          message: "Invalid authorization header format",
         });
       }
 
-      next();
+      try {
+        const deps: AppDeps = {
+          db: req.app.locals["db"],
+          authPort: this,
+        };
+
+        const result = await this.validateToken(token)(deps)();
+
+        if ("left" in result) {
+          return res.status(401).json({
+            code: "UNAUTHORIZED",
+            message: result.left.message,
+          });
+        }
+
+        const user = result.right;
+        const hasRequiredRole = roles.some((role) => user.roles.includes(role));
+
+        if (!hasRequiredRole) {
+          return res.status(403).json({
+            code: "FORBIDDEN",
+            message: "Insufficient permissions",
+          });
+        }
+
+        req.user = user;
+        next();
+      } catch (error) {
+        return res.status(401).json({
+          code: "UNAUTHORIZED",
+          message: "인증 처리 중 오류가 발생했습니다.",
+        });
+      }
     };
   };
 }
